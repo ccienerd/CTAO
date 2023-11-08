@@ -96,27 +96,26 @@ def get_credential_ids(base_url, token):
 
 
 # readserialnumber
-
-
 def read_sn_csv(file_name):
     sn_list = {}
     with open(file_name, 'r') as inventory:
-        css_dict_reader = DictReader(inventory)
+        csv_dict_reader = DictReader(inventory)
 
         for device in csv_dict_reader:
             sn_list[device["List of SNs"]] = device["hostname"]
-            
+
 
     return sn_list
 
+
 def claim_device_pnp(base_url,token,deviceid,sn,siteid,hostname):
     endpoint = "/api/v1/onboarding/pnp-device/site-claim"
-    
+
     headers = {
         'x-auth-token': token,
         'Accept': 'application/json'
     }
-    Body = {
+    body = {
 	"siteId": siteid,
 	"deviceId": deviceid,
 	"hostname": hostname,
@@ -132,7 +131,7 @@ def claim_device_pnp(base_url,token,deviceid,sn,siteid,hostname):
 	}
     }
 
-    response = requests.request("POST", url=base_url+endpoint, json=Body, verify=False)
+    response = requests.request("POST", url=base_url+endpoint, headers=headers, json=body, verify=False)
     return response.json()
 
 
@@ -143,17 +142,19 @@ def get_device_id(base_url, token):
         'Accept': 'application/json'
     }
 
-    response = requests.request("GET", url=base_url+endpoint, verify=False)
+    response = requests.request("GET", url=base_url+endpoint, headers=headers, verify=False)
     return response.json()
 
-def get_site_id(base_url,token)
+
+def get_site_id(base_url, token)
     endpoint ="/dna/intent/api/v1/site"
 
     headers = {
         'x-auth-token': token,
         'Accept': 'application/json'
     }
-    response = requests.request("GET", url=base_url+endpoint, verify=False)
+
+    response = requests.request("GET", url=base_url+endpoint, headers=headers, verify=False)
     return response.json()
 
 
@@ -163,31 +164,19 @@ def main():
     password = getpass.getpass()
 
     # 1. Read SN list from CSV
-     snlist = read_sn_csv("sn_list.csv")
-   # sns_string = ","
-    #sns_string = ips_string.join(ips)
-    #print(ips_string)
+    snlist = read_sn_csv("sn_list.csv")
 
     # 2. Get DNAC Auth Token
     token = get_auth_token(base_url, username, password)
-    #print(token)
 
     # 3. Get Device ID ready to be claimed
     device_ids = get_device_id(base_url, token)
-    
+
 
     # 4. Start Discovery
 
-
     print("Done!")
-    print("Check Inventory in DNAC GUI for results.")
-    print("Task Id: ", disco_task)
-    print()
-
 
 
 if __name__ == "__main__":
     main()
-
-
-
