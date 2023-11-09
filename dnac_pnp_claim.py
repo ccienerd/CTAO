@@ -3,7 +3,6 @@ __credits__ = ["Saurabh & Alexios"]
 __email__ = "saushar2@cisco.com"
 __version__ = "1.0"
 
-import argparse
 import getpass
 from csv import DictReader
 import requests
@@ -11,43 +10,11 @@ import urllib3
 
 urllib3.disable_warnings()
 
-# Initialize Arg parser
-arg_parser = argparse.ArgumentParser(prog=__doc__)
-
-arg_parser.add_argument(
-    "-i",
-    "--ip-ranges",
-    required=False,
-    type=str,
-    default='ip_ranges.csv',
-    help="Name of inventory file. Must be a csv file."
-)
-
-arg_parser.add_argument(
-    "-d",
-    "--disco-type",
-    required=False,
-    type=str,
-    default="MULTI RANGE",
-    help="Discovery Type, options: RANGE, MULTI RANGE"
-)
-
-arg_parser.add_argument(
-    "-n",
-    "--disco-name",
-    required=True,
-    type=str,
-    help="Give a Unique Name to the discovery job."
-)
-
-
-args = vars(arg_parser.parse_args())
-
 
 # DNAC uses basic auth and a short-lived token is used for making API calls
 def get_auth_token(base_url, username, password):
     try:
-        url = f'https://{base_url}/dna/system/api/v1/auth/token'
+        url = f'{base_url}/dna/system/api/v1/auth/token'
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
 
         # Make the POST Request to get a Token
@@ -86,7 +53,7 @@ def get_credential_ids(base_url, token):
 
     for cred in cred_type:
         url = f"https://{base_url}/dna/intent/api/v1/global-credential?credentialSubType={cred}"
-        #print(url)
+        # print(url)
         resp = requests.request("GET", url, headers=headers, verify=False).json()["response"]
 
         for item in resp:
@@ -104,11 +71,10 @@ def read_sn_csv(file_name):
         for device in csv_dict_reader:
             sn_list[device["List of SNs"]] = device["hostname"]
 
-
     return sn_list
 
 
-def claim_device_pnp(base_url,token,deviceid,sn,siteid,hostname):
+def claim_site_pnp(base_url, token, deviceid, siteid, hostname):
     endpoint = "/api/v1/onboarding/pnp-device/site-claim"
 
     headers = {
@@ -116,22 +82,56 @@ def claim_device_pnp(base_url,token,deviceid,sn,siteid,hostname):
         'Accept': 'application/json'
     }
     body = {
-	"siteId": siteid,
-	"deviceId": deviceid,
-	"hostname": hostname,
-	"type": "Default",
-	"imageInfo": {
-		"imageId": "",
-		"skip": False,
-		"removeInactive": True
-	},
-	"configInfo": {
-		"configId": "",
-		"configParameters": []
-	}
+        "siteId": siteid,
+        "deviceId": deviceid,
+        "hostname": hostname,
+        "type": "Default",
+        "imageInfo": {
+            "imageId": "",
+            "skip": False,
+            "removeInactive": True
+        },
+        "configInfo": {
+            "configId": "",
+            "configParameters": []
+        }
     }
 
-    response = requests.request("POST", url=base_url+endpoint, headers=headers, json=body, verify=False)
+    response = requests.request("POST", url=base_url + endpoint, headers=headers, json=body, verify=False)
+    print(response.status_code)
+    print(response.text)
+    return response.json()
+
+
+def claim_device_pnp(base_url, token, deviceid,  hostname, template_id, image_id=None):
+    endpoint = "/api/v1/onboarding/pnp-device/claim"
+
+    headers = {
+        'x-auth-token': token,
+        'Accept': 'application/json'
+    }
+
+    body = {
+        "populateInventory": True,
+        "deviceClaimList": [
+            {
+                "deviceId": deviceid,
+                "configList": [
+                    {
+                        "configParameters": [],
+                        "configId": template_id,
+                        "saveToStartup": True
+                    }
+                ],
+                "hostname": hostname
+            }
+        ],
+        "imageId": image_id,
+        "removeInactive": False,
+        "configId": template_id  #"bdaec676-5448-4b36-94c2-0145d129635a"
+    }
+
+    response = requests.request("POST", url=base_url + endpoint, headers=headers, json=body, verify=False)
     return response.json()
 
 
@@ -142,29 +142,71 @@ def get_device_id(base_url, token):
         'Accept': 'application/json'
     }
 
-    response = requests.request("GET", url=base_url+endpoint, headers=headers, verify=False)
+    response = requests.request("GET", url=base_url + endpoint, headers=headers, verify=False)
     return response.json()
 
 
-def get_site_id(base_url, token)
-    endpoint ="/dna/intent/api/v1/site"
+def get_sites(base_url, token):
+    endpoint = "/dna/intent/api/v1/site"
 
     headers = {
         'x-auth-token': token,
         'Accept': 'application/json'
     }
 
-    response = requests.request("GET", url=base_url+endpoint, headers=headers, verify=False)
-    return response.json()
+    response = requests.request("GET", url=base_url + endpoint, headers=headers, verify=False)
+    return response.json()["response"]
+
+
+def sn_to_id(device_ids):
+    dev_sn_to_id = {}
+
+    for dev in device_ids:
+        #print(dev["deviceInfo"]['serialNumber'], dev["id"])
+        dev_sn_to_id[dev["deviceInfo"]['serialNumber']] = dev["id"]
+
+    return dev_sn_to_id
+
+
+def list_of_sites(data):
+    site_dict = {}
+    for i, site in enumerate(data):
+
+        if site["additionalInfo"]:
+            for lookup in site["additionalInfo"]:
+                if lookup["attributes"].get("type") and (lookup["attributes"].get("type") == "building" or lookup["attributes"].get("type") == "floor"):
+                    site_dict[site["siteNameHierarchy"]] = site["id"]
+
+    return list(site_dict.items())
+
+
+def site_selection_menu(site_list):
+    selected_site = {}
+    print("************ List of sites ************")
+    for i, site in enumerate(site_list, 1):
+        print(i, site)
+
+    print()
+    while True:
+        try:
+            choice = input(f"Please select a site 1-{len(site_list)}: ")
+            selected_site = site_list[int(choice) - 1]
+            print(selected_site)
+            break
+
+        except:
+            print("Invalid Choice!")
+
+    return selected_site
 
 
 def main():
     base_url = input("Enter DNAC URL. eg. dnac.cisco.com:  ")
     username = input("Enter Username:  ")
-    password = getpass.getpass()
+    password = getpass.getpass("Enter DNAC password:  ")
 
     # 1. Read SN list from CSV
-    snlist = read_sn_csv("sn_list.csv")
+    sn_dict = read_sn_csv("sn_list.csv")
 
     # 2. Get DNAC Auth Token
     token = get_auth_token(base_url, username, password)
@@ -172,8 +214,18 @@ def main():
     # 3. Get Device ID ready to be claimed
     device_ids = get_device_id(base_url, token)
 
+    # 4. create SN to ID mapping
+    sn_to_id_dict = sn_to_id(device_ids)
 
-    # 4. Start Discovery
+    # 5. Get sites
+    raw_sites = get_sites(base_url, token)
+
+    site_list = list_of_sites(raw_sites)
+    selected_site = site_selection_menu(site_list)
+
+    # 6. Start Discovery
+    for sn, hostname in sn_dict.items():
+        claim_site_pnp(base_url, token, sn_to_id_dict[sn], selected_site[1], hostname)
 
     print("Done!")
 
