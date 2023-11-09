@@ -102,7 +102,8 @@ def get_auth_token(url):
                 t.write(response.json()["Token"])
             return token
 
-    except:
+    except Exception as e:
+        print(e)
         print("Issue with credentials!")
 
 
@@ -517,10 +518,10 @@ def main():
             write_to_csv(failed_hostnames, log_dir, "Failed_Distributions_" + current_timestamp, header="Failed Devices")
 
         print()
-        print(" Completed distribution of images.")
-        print(" Success:", success)
-        print(" Failure:", failure)
-        print(" Total:", total)
+        print(" Status of image distribution.")
+        print(" Successful Devices:", success)
+        print(" Failed Devices:", failure)
+        print(" Total Devices:", total)
         print()
 
         print(uuid_list)
@@ -562,11 +563,11 @@ def main():
 
         if failed_activations:
             write_to_csv(failed_activations, log_dir, "Failed_Activations_"+current_timestamp, header="Failed Activations")
-
-        print(" Completed activation of images.")
-        print(" Success:", success)
-        print(" Failure:", failure)
-        print(" Total:", total)
+    
+        print(" Status of image activation.")
+        print(" Successful Devices:", success)
+        print(" Failed Devices:", failure)
+        print(" Total Devices:", total)
         print()
 
     print()
@@ -577,3 +578,4 @@ def main():
 if __name__ == '__main__':
     main()
 
+ 

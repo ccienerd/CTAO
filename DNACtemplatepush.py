@@ -22,9 +22,9 @@ class bcolors:
 if __name__ == "__main__":
     env = {}
     # get Auth token and save in environment variable
-    env["base_url"] = input("DNAC URL eg https://dnac.example.com:  ")
-    env["username"] = input("Username: ")
-    env["password"] = getpass.getpass()
+    env["base_url"] = "https://10.8.6.56"  #input("DNAC URL eg https://dnac.example.com:  ")
+    env["username"] = "admin" #"input("Username: ")
+    env["password"] = getpass.getpass("DNAC Passowrd: ")
     env['token'] = get_auth_token(env)
 
     group_size = 99  # group size must be below 100.

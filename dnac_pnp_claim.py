@@ -69,7 +69,7 @@ def read_sn_csv(file_name):
         csv_dict_reader = DictReader(inventory)
 
         for device in csv_dict_reader:
-            sn_list[device["List of SNs"]] = device["hostname"]
+            sn_list[device["Serial Number"]] = device["Hostname"]
 
     return sn_list
 
@@ -168,6 +168,7 @@ def sn_to_id(device_ids):
     return dev_sn_to_id
 
 
+
 def list_of_sites(data):
     site_dict = {}
     for i, site in enumerate(data):
@@ -201,8 +202,8 @@ def site_selection_menu(site_list):
 
 
 def main():
-    base_url = input("Enter DNAC URL. eg. dnac.cisco.com:  ")
-    username = input("Enter Username:  ")
+    base_url = "https://10.8.6.56"
+    username = "admin"
     password = getpass.getpass("Enter DNAC password:  ")
 
     # 1. Read SN list from CSV
@@ -216,7 +217,7 @@ def main():
 
     # 4. create SN to ID mapping
     sn_to_id_dict = sn_to_id(device_ids)
-
+    print("List of Devices ready to be claimed", list(sn_to_id_dict.keys()))
     # 5. Get sites
     raw_sites = get_sites(base_url, token)
 
