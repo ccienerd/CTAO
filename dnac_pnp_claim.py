@@ -7,6 +7,8 @@ import getpass
 from csv import DictReader
 import requests
 import urllib3
+import tkinter as tk
+from tkinter import messagebox
 
 urllib3.disable_warnings()
 
@@ -74,7 +76,7 @@ def read_sn_csv(file_name):
     return sn_list
 
 
-def claim_site_pnp(base_url, token, deviceid, siteid, hostname):
+def claim_site_pnp(base_url, token, deviceid, siteid, hostname, variables, template_id=None):
     endpoint = "/api/v1/onboarding/pnp-device/site-claim"
 
     headers = {
@@ -92,10 +94,27 @@ def claim_site_pnp(base_url, token, deviceid, siteid, hostname):
             "removeInactive": True
         },
         "configInfo": {
-            "configId": "",
-            "configParameters": []
+            "configId": "e1825fc0-655f-464b-bee0-cfda47c87222",
+            "configParameters": [
+                {
+                    "key": "vlan",
+                    "value": variables[0]
+                },
+                {
+                    "key": "name",
+                    "value": hostname
+                },
+                {
+                    "key": "mgmt_ip",
+                    "value": variables[1]
+                },
+                {
+                    "key": "vlan_ip",
+                    "value": variables[2]
+                }
+            ]
         }
-    }
+    }  # [vlan, mgmt_ip, vlan_ip]
 
     response = requests.request("POST", url=base_url + endpoint, headers=headers, json=body, verify=False)
     print(response.status_code)
@@ -103,7 +122,7 @@ def claim_site_pnp(base_url, token, deviceid, siteid, hostname):
     return response.json()
 
 
-def claim_device_pnp(base_url, token, deviceid,  hostname, template_id, image_id=None):
+def claim_device_pnp(base_url, token, deviceid, hostname, template_id, image_id=None):
     endpoint = "/api/v1/onboarding/pnp-device/claim"
 
     headers = {
@@ -128,7 +147,7 @@ def claim_device_pnp(base_url, token, deviceid,  hostname, template_id, image_id
         ],
         "imageId": image_id,
         "removeInactive": False,
-        "configId": template_id  #"bdaec676-5448-4b36-94c2-0145d129635a"
+        "configId": template_id  # "bdaec676-5448-4b36-94c2-0145d129635a"
     }
 
     response = requests.request("POST", url=base_url + endpoint, headers=headers, json=body, verify=False)
@@ -162,11 +181,10 @@ def sn_to_id(device_ids):
     dev_sn_to_id = {}
 
     for dev in device_ids:
-        #print(dev["deviceInfo"]['serialNumber'], dev["id"])
+        # print(dev["deviceInfo"]['serialNumber'], dev["id"])
         dev_sn_to_id[dev["deviceInfo"]['serialNumber']] = dev["id"]
 
     return dev_sn_to_id
-
 
 
 def list_of_sites(data):
@@ -175,7 +193,8 @@ def list_of_sites(data):
 
         if site["additionalInfo"]:
             for lookup in site["additionalInfo"]:
-                if lookup["attributes"].get("type") and (lookup["attributes"].get("type") == "building" or lookup["attributes"].get("type") == "floor"):
+                if lookup["attributes"].get("type") and (
+                        lookup["attributes"].get("type") == "building" or lookup["attributes"].get("type") == "floor"):
                     site_dict[site["siteNameHierarchy"]] = site["id"]
 
     return list(site_dict.items())
@@ -201,10 +220,23 @@ def site_selection_menu(site_list):
     return selected_site
 
 
+def get_device_list_ready_to_claim(base_url, token):
+    headers = {
+        'x-auth-token': token,
+        'Accept': 'application/json'
+    }
+
+    endpoint = "/api/v1/onboarding/pnp-device?state=Unclaimed%2CPlanned&offset=0&limit=1000"
+
+    response = requests.request("GET", url=base_url + endpoint, headers=headers, verify=False)
+    return response.json()
+
+
 def main():
     base_url = "https://10.8.6.56"
     username = "admin"
-    password = getpass.getpass("Enter DNAC password:  ")
+    password = "C1sc0123!!"
+    unc_dev_list = []
 
     # 1. Read SN list from CSV
     sn_dict = read_sn_csv("sn_list.csv")
@@ -213,11 +245,23 @@ def main():
     token = get_auth_token(base_url, username, password)
 
     # 3. Get Device ID ready to be claimed
-    device_ids = get_device_id(base_url, token)
+    # device_ids = get_device_id(base_url, token)
+    unclaimed_devs = get_device_list_ready_to_claim(base_url, token)
 
     # 4. create SN to ID mapping
-    sn_to_id_dict = sn_to_id(device_ids)
-    print("List of Devices ready to be claimed", list(sn_to_id_dict.keys()))
+    sn_to_id_dict = sn_to_id(unclaimed_devs)
+
+    for dev in unclaimed_devs:
+        unc_dev_list.append(dev.get('deviceInfo').get('serialNumber'))
+
+    intersection = list(set(unc_dev_list) & set(list(sn_dict.keys())))
+
+    print("List of Devices ready to be claimed", len(intersection), "out of", len(sn_dict), "provided.")
+    for valid_sn in intersection:
+        print(valid_sn)
+
+    print()
+
     # 5. Get sites
     raw_sites = get_sites(base_url, token)
 
@@ -226,7 +270,44 @@ def main():
 
     # 6. Start Discovery
     for sn, hostname in sn_dict.items():
-        claim_site_pnp(base_url, token, sn_to_id_dict[sn], selected_site[1], hostname)
+        if sn in intersection:
+            # Create a new instance of tkinter window
+            root = tk.Tk()
+            root.geometry("300x200")
+            root.title(hostname)
+
+            # Creating labels and entry widgets for each key in JSON
+            tk.Label(root, text="VLAN").grid(row=0)
+            tk.Label(root, text="MGMT IP").grid(row=1)
+            tk.Label(root, text="VLAN IP").grid(row=2)
+
+            # Entries
+            vlan_entry = tk.Entry(root)
+            mgmt_ip_entry = tk.Entry(root)
+            vlan_ip_entry = tk.Entry(root)
+
+            # Positioning Entries
+            vlan_entry.grid(row=0, column=1)
+            mgmt_ip_entry.grid(row=1, column=1)
+            vlan_ip_entry.grid(row=2, column=1)
+
+            def submit():
+                vlan = vlan_entry.get()
+                mgmt_ip = mgmt_ip_entry.get()
+                vlan_ip = vlan_ip_entry.get()
+                messagebox.showinfo("Submitted", "Data submitted successfully")
+                root.destroy()  # close the GUI after clicking submit
+                print(vlan, mgmt_ip, vlan_ip)
+                claim_site_pnp(base_url, token, sn_to_id_dict[sn], selected_site[1], hostname, [vlan, mgmt_ip, vlan_ip])
+
+            # Submit button
+            tk.Button(root, text="Submit", command=submit).grid(row=4, column=1)
+            root.mainloop()
+            print()
+
+        else:
+            print(sn, "cannot be claimed! It is not in then list of unclaimed devices.")
+            print()
 
     print("Done!")
 
