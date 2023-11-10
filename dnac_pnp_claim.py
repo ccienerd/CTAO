@@ -7,8 +7,6 @@ import getpass
 from csv import DictReader
 import requests
 import urllib3
-import tkinter as tk
-from tkinter import messagebox
 
 urllib3.disable_warnings()
 
@@ -271,42 +269,16 @@ def main():
     # 6. Start Discovery
     for sn, hostname in sn_dict.items():
         if sn in intersection:
-            # Create a new instance of tkinter window
-            root = tk.Tk()
-            root.geometry("300x200")
-            root.title(hostname)
-
-            # Creating labels and entry widgets for each key in JSON
-            tk.Label(root, text="VLAN").grid(row=0)
-            tk.Label(root, text="MGMT IP").grid(row=1)
-            tk.Label(root, text="VLAN IP").grid(row=2)
-
-            # Entries
-            vlan_entry = tk.Entry(root)
-            mgmt_ip_entry = tk.Entry(root)
-            vlan_ip_entry = tk.Entry(root)
-
-            # Positioning Entries
-            vlan_entry.grid(row=0, column=1)
-            mgmt_ip_entry.grid(row=1, column=1)
-            vlan_ip_entry.grid(row=2, column=1)
-
-            def submit():
-                vlan = vlan_entry.get()
-                mgmt_ip = mgmt_ip_entry.get()
-                vlan_ip = vlan_ip_entry.get()
-                messagebox.showinfo("Submitted", "Data submitted successfully")
-                root.destroy()  # close the GUI after clicking submit
-                print(vlan, mgmt_ip, vlan_ip)
-                claim_site_pnp(base_url, token, sn_to_id_dict[sn], selected_site[1], hostname, [vlan, mgmt_ip, vlan_ip])
-
-            # Submit button
-            tk.Button(root, text="Submit", command=submit).grid(row=4, column=1)
-            root.mainloop()
+            print()
+            print("Enter info for", hostname)
+            vlan = input("Enter Vlan: ")
+            mgmt_ip = input("Enter mgmt IP: ")
+            vlan_ip = input("Enter vlan IP: ")
+            claim_site_pnp(base_url, token, sn_to_id_dict[sn], selected_site[1], hostname, [vlan, mgmt_ip, vlan_ip])
             print()
 
         else:
-            print(sn, "cannot be claimed! It is not in then list of unclaimed devices.")
+            print(hostname, sn, "cannot be claimed! It is not in then list of unclaimed devices.")
             print()
 
     print("Done!")
