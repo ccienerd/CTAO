@@ -271,14 +271,14 @@ def main():
         if sn in intersection:
             print()
             print("Enter info for", hostname)
-            vlan = input("Enter Vlan: ")
-            mgmt_ip = input("Enter mgmt IP: ")
-            vlan_ip = input("Enter vlan IP: ")
+            vlan = input("Enter shared service Vlan ID: ")
+            vlan_ip = input("Enter shared service Vlan IP: ")
+            mgmt_ip = input("Enter MGMT interface IP: ")
             claim_site_pnp(base_url, token, sn_to_id_dict[sn], selected_site[1], hostname, [vlan, mgmt_ip, vlan_ip])
             print()
 
         else:
-            print(hostname, sn, "cannot be claimed! It is not in then list of unclaimed devices.")
+            print(hostname, sn, "listed in csv cannot be claimed because it is not in the list of unclaimed devices in DNAC.")
             print()
 
     print("Done!")
