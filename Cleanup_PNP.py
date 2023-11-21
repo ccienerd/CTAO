@@ -1,3 +1,8 @@
+__author__ = "Saurabh Sharma & Alexios Nersessian"
+__credits__ = ["Saurabh & Alexios"]
+__email__ = "saushar2@cisco.com"
+__version__ = "1.0"
+
 import getpass
 import time
 import requests
