@@ -1,5 +1,9 @@
-#Autommate template push
-# Alex Nersessian 3/30/22
+__author__ = "Alexios Nersessian"
+__copyright__ = "Copyright 2023, Cisco"
+__email__ = "anersess@cisco.com"
+__version__ = "v3"
+__coauthor__ = "Saurabh Sharma"
+
 import csv
 import getpass
 import os
