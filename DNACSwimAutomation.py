@@ -2,7 +2,7 @@ __author__ = "Alexios Nersessian"
 __copyright__ = "Copyright 2023, Cisco"
 __email__ = "anersess@cisco.com"
 __version__ = "v3"
-__coauthor__ = "Saurabh"
+__coauthor__ = "Saurabh Sharma"
 
 """
 Script distributes and activates an image on any given device list. The device list is provided as a CSV file. 
